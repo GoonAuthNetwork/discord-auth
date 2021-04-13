@@ -17,6 +17,7 @@ if DEVELOPMENT:
 class BotSettings(BaseSettings):
     discord_token: str = Field(..., env="DISCORD_TOKEN")
     guild_ids: Optional[List[int]] = Field(None, env="DISCORD_GUILD_IDS")
+    command_prefix: str = Field("!", env="DISCORD_COMMAND_PREFIX")
 
 
 bot_settings = BotSettings()
