@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 import sys
@@ -48,6 +49,32 @@ class MongoSettings(BaseSettings):
 db_settings = MongoSettings()
 
 
+class InterceptHandler(logging.Handler):
+    loglevel_mapping = {
+        50: "CRITICAL",
+        40: "ERROR",
+        30: "WARNING",
+        20: "INFO",
+        10: "DEBUG",
+        0: "NOTSET",
+    }
+
+    def emit(self, record):
+        try:
+            level = logger.level(record.levelname).name
+        except AttributeError:
+            level = self.loglevel_mapping[record.levelno]
+
+        frame, depth = logging.currentframe(), 2
+        while frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level, record.getMessage()
+        )
+
+
 class LoggingSettings(BaseSettings):
     level: str = Field("info", env="LOGGING_LEVEL")
     format: str = Field(
@@ -87,6 +114,14 @@ class LoggingSettings(BaseSettings):
                 level=self.level.upper(),
                 format=self.format,
             )
+
+        # Intercept logging
+        logging.basicConfig(handlers=[InterceptHandler()], level=0)
+
+    def intercept_logging(self, log_name: str):
+        _logger = logging.getLogger(log_name)
+        _logger.propagate = False
+        _logger.handlers = [InterceptHandler()]
 
 
 logging_settings = LoggingSettings()

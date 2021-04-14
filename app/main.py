@@ -1,6 +1,7 @@
 from discord import Intents, Message
 from discord.ext import commands
 from discord_slash import SlashCommand
+from cogwatch import Watcher
 from loguru import logger
 
 from app.config import DEVELOPMENT, bot_settings, logging_settings
@@ -18,6 +19,15 @@ class AuthBot(commands.Bot):
         )
 
     async def on_ready(self):
+        # Setup cogwatch
+        logging_settings.intercept_logging("cogwatch")
+
+        watcher = Watcher(
+            self, path="app/cogs", debug=DEVELOPMENT, default_logger=False
+        )
+        await watcher.start()
+
+        # Done
         logger.info("Discord bot ready!")
 
     async def on_message(self, message: Message):
@@ -39,5 +49,5 @@ slash = SlashCommand(
     bot, sync_commands=True, sync_on_cog_reload=True, override_type=True
 )
 
-bot.load_extension("cogs.goon_auth")
+bot.load_extension("app.cogs.goon_auth")
 bot.run(bot_settings.discord_token)
