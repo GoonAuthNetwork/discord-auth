@@ -46,7 +46,7 @@ class AuthBot(commands.Bot):
 
 bot = AuthBot()
 slash = SlashCommand(
-    bot, sync_commands=True, sync_on_cog_reload=True, override_type=True
+    bot, sync_commands=True, override_type=True  # , sync_on_cog_reload=True
 )
 
 bot.load_extension("app.cogs.goon_auth")
