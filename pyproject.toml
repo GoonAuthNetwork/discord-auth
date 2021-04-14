@@ -15,6 +15,7 @@ python-dotenv = "0.17.0"
 pydantic = "1.8.1"
 loguru = "0.5.3"
 cogwatch = "^2.1.0"
+httpx = "^0.17.1"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.9.0"
