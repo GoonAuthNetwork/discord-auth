@@ -16,9 +16,12 @@ if DEVELOPMENT:
 
 
 class BotSettings(BaseSettings):
-    discord_token: str = Field(..., env="DISCORD_TOKEN")
     guild_ids: Optional[List[int]] = Field(None, env="DISCORD_GUILD_IDS")
-    command_prefix: str = Field("!", env="DISCORD_COMMAND_PREFIX")
+
+    discord_bot_token: str = Field(..., env="DISCORD_BOT_TOKEN")
+    discord_application_id: int = Field(..., env="DISCORD_APPLICATION_ID")
+    discord_public_key: str = Field(..., env="DISCORD_PUBLIC_KEY")
+
     auth_attempt_cache_time: int = Field(300, env="DISCORD_AUTH_ATTEMPT_CACHE_TIME")
 
 
