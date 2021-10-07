@@ -1,7 +1,6 @@
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional
-from urllib import parse
 
 from httpx import AsyncClient
 
@@ -60,7 +59,7 @@ class GoonFilesApi:
     async def find_user_by_service(
         self, service: Service, token: str
     ) -> Optional[User]:
-        payload = {"service": parse.quote(service.value), "token": parse.quote(token)}
+        payload = {"service": service.value, "token": token}
         response = await self.client.get("/user/", params=payload)
 
         # This shouldn't happen, but who knows...
@@ -80,9 +79,23 @@ class GoonFilesApi:
         regDate: datetime,
         services: Optional[List[ServiceToken]] = None,
     ) -> Optional[User]:
-        payload = {"userId": userId, "userName": userName, "regDate": regDate}
+        payload = {
+            "userId": userId,
+            "userName": userName,
+            "regDate": regDate.isoformat(),
+        }
         if services is not None:
-            payload["services"] = services
+            payload["services"] = []
+            for serviceToken in services:
+                serviceTokenDict = {
+                    "service": serviceToken.service.value,
+                    "token": serviceToken.token,
+                }
+
+                if serviceToken.info is not None:
+                    serviceTokenDict["info"] = serviceToken.info
+
+                payload["services"].append(serviceTokenDict)
 
         response = await self.client.post("/user/", json=payload)
 
