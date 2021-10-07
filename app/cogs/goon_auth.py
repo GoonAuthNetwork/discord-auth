@@ -6,6 +6,7 @@ from loguru import logger
 
 from app.clients.goon_auth_api import GoonAuthApi, GoonAuthStatus
 from app.config import bot_settings
+from app.utils import auth
 
 
 class LimitedSizeDict(OrderedDict):
@@ -50,32 +51,15 @@ class GoonAuth(commands.Cog):
         ],
     )
     async def _auth_start(self, ctx: SlashContext, username: str):
-        try:
-            challenge = await self.auth_api.get_verification(username)
-        except TypeError:
-            await ctx.send("Invalid username, please try again.", hidden=True)
-            return
+        challenge, message = auth.get_verification(self.auth_api, username)
 
-        if challenge is None:
-            await ctx.send(
-                "This error should not exist, please tell your nearest GAN developer.",
-                hidden=True,
-            )
-            return
+        if challenge is not None:
+            await ctx.send(message, hidden=True)
 
-        message = (
-            "Please place the following hash into your Something Awful profile."
-            "Anywhere in the **Additional Information** section here "
-            "https://forums.somethingawful.com/member.php?action=editprofile\n\n"
-            f"**{challenge.hash}**\n\n"
-            f"Note: The hash expires after **five minutes**\n\n"
-            "Once finished, use the command /auth_check\n"
-        )
-
-        await ctx.send(message, hidden=True)
-
-        # Save sa username for this discord id for use in /auth_check
-        self.auth_attempts[ctx.author_id] = username
+            # Save sa username for this discord id for use in /auth_check
+            self.auth_attempts[ctx.author_id] = username
+        else:
+            await ctx.message(message, hidden=True)
 
     @cog_ext.cog_slash(
         name="auth_check",
@@ -89,36 +73,22 @@ class GoonAuth(commands.Cog):
             await ctx.send("Please use the following command first: /auth", hidden=True)
             return
 
-        try:
-            status = await self.auth_api.get_verification_update(user_name)
-        except ValueError:
-            await ctx.send("Please use the following command first: /auth", hidden=True)
-            return
-        except TypeError:
-            await ctx.send("Invalid username, please try again.", hidden=True)
-            return
+        # Handles errors and ensures we're validated
+        status, message = auth.check_verification(self.auth_api, user_name)
 
         if status is None:
-            await ctx.send(
-                "This error should not exist, please tell your nearest GAN developer.",
-                hidden=True,
-            )
+            await ctx.send(message, hidden=True)
             return
 
-        if status.validated:
-            # Handle a valid user, include guild_id to update roles if needed
-            await self.handle_valid_user(status, ctx.guild_id)
-            await ctx.send("Validation succeeded, welcome to the Goon Auth Network")
+        # Handle a valid user, include guild_id to update roles if needed
+        await self.handle_valid_user(status, ctx.guild_id)
+        await ctx.send("Validation succeeded, welcome to the Goon Auth Network")
 
-            # Clean up the cache, we don't care if the key no longer exists
-            try:
-                self.auth_attempts.pop(ctx.author_id)
-            except KeyError:
-                pass
-        else:
-            await ctx.send(
-                "Failed to validate, is the hash in your profile?", hidden=True
-            )
+        # Clean up the cache, we don't care if the key no longer exists
+        try:
+            self.auth_attempts.pop(ctx.author_id)
+        except KeyError:
+            pass
 
     async def handle_valid_user(self, status: GoonAuthStatus, guild_id: int) -> None:
         logger.info(
