@@ -60,7 +60,7 @@ class AuthResponseBuilder:
 
         return DiscordResponse(content=" ", embeds=[embed], empherical=True)
 
-    def auth_cancel() -> DiscordResponse:
+    def verification_cancel() -> DiscordResponse:
         embed = Embed(
             type="rich",
             title="Goon Authentication",
@@ -136,5 +136,18 @@ class AuthResponseBuilder:
             content=" ",
             embeds=[embed],
             action_row=action_row,
+            empherical=True,
+        )
+
+    def verification_profile_hash_missing() -> DiscordResponse:
+        embed = Embed(
+            type="rich",
+            title="Goon Authentication",
+            description=("Failed to validate. Is the **hash** in your **profile**?"),
+            color=color.Colour.red(),
+        )
+
+        return DiscordResponse(
+            embeds=[embed],
             empherical=True,
         )

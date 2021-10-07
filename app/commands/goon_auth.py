@@ -8,12 +8,15 @@ from dispike.creating.models.options import (
     OptionTypes,
 )
 from dispike.eventer import EventTypes
-from dispike.helper import Embed, color
 from dispike.incoming.incoming_interactions import IncomingDiscordButtonInteraction
 from dispike.response import DiscordResponse
 
 from app.clients.goon_auth_api import GoonAuthApi
-from app.commands.responses.auth_responses import AuthResponseBuilder
+from app.commands.responses import (
+    AboutResponseBuilder,
+    AuthResponseBuilder,
+    HelpResponseBuilder,
+)
 
 
 # TODO: Use redis for this very ghetto cache
@@ -157,7 +160,7 @@ class AuthCollection(interactions.EventCollection):
             pass
 
         # Send response
-        return AuthResponseBuilder.auth_cancel()
+        return AuthResponseBuilder.verification_cancel()
 
     @interactions.on("auth.verify", type=EventTypes.COMPONENT)
     async def auth_verify(
@@ -191,11 +194,9 @@ class AuthCollection(interactions.EventCollection):
 
         # In auth system but hash isn't on profile page
         if not status.validated:
-            # TODO: verification_profile_hash_missing()
-            # Leave Profile/Verify/Cancel buttons, etc
-            return AuthResponseBuilder.verification_error(
-                "Failed to validate, is the hash in your profile?"
-            )
+            # This prints a new message with the error to ensure
+            # the original hash/verify/cancel buttons remain
+            return AuthResponseBuilder.verification_profile_hash_missing()
 
         # Handle valid user
         # goon-files.add()
@@ -210,47 +211,15 @@ class AuthCollection(interactions.EventCollection):
 
     @interactions.on("about")
     async def about(self, ctx: IncomingDiscordSlashInteraction) -> DiscordResponse:
-        embed = Embed(
-            type="rich",
-            title="About GoonAuthNetwork",
-            description=(
-                "Insert some giant monologue on the "
-                "ethics of discord goon authentication here."
-            ),
-            color=color.Colour.teal(),
-        )
-        # TODO: Change this to http://forums.somethingawful.com/member.php?
-        #   action=getinfo&username=<insert_sa_username_here>
-        # embed.add_field(name="\u200B", value="\u200B", inline=False)
-        embed.add_field(
-            name="Authenticated",
-            value=(
-                "[NotOats](https://forums.somethingawful.com/member.php?"
-                "action=editprofile)"
-            ),
-            inline=True,
-        )
-        embed.add_field(name="On", value="10/7/2021", inline=True)
-        embed.add_field(
-            name="\u200B",
-            value=(
-                "Powerd by the opened-sourced "
-                "[Goon Auth Network](https://github.com/GoonAuthNetwork)"
-            ),
-            inline=False,
-        )
+        # Pull Auth records and choose a response
+        # if authed:
+        #    AboutResponseBuilder.about_authed()
 
-        return DiscordResponse(embeds=[embed], empherical=True)
+        return AboutResponseBuilder.about_anonymous()
 
     @interactions.on("help")
     async def help(self, ctx: IncomingDiscordSlashInteraction) -> DiscordResponse:
-        return DiscordResponse(
-            content=(
-                "Help is on the way! Maybe... eventually... probably not. "
-                "This command doesn't do anything currently."
-            ),
-            empherical=True,
-        )
+        return HelpResponseBuilder.help()
 
     @interactions.on("options")
     async def options(self, **kwargs) -> DiscordResponse:
