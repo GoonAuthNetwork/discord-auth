@@ -1,6 +1,6 @@
 import typing
+from collections import OrderedDict
 from dispike import interactions, IncomingDiscordSlashInteraction
-from dispike.creating.components import ActionRow, Button, ButtonStyles, LinkButton
 from dispike.creating.models.options import (
     CommandChoice,
     CommandOption,
@@ -9,12 +9,36 @@ from dispike.creating.models.options import (
 )
 from dispike.eventer import EventTypes
 from dispike.helper import Embed, color
+from dispike.incoming.incoming_interactions import IncomingDiscordButtonInteraction
 from dispike.response import DiscordResponse
+
+from app.clients.goon_auth_api import GoonAuthApi
+from app.commands.responses.auth_responses import AuthResponseBuilder
+
+
+# TODO: Use redis for this very ghetto cache
+class LimitedSizeDict(OrderedDict):
+    def __init__(self, max_size: int) -> None:
+        super().__init__()
+        self.max_size = max_size
+
+    def __setitem__(self, k, v) -> None:
+        super().__setitem__(k, v)
+        self._check_size_limit()
+
+    def _check_size_limit(self):
+        while len(self) > self.max_size:
+            self.popitem(last=False)
 
 
 class AuthCollection(interactions.EventCollection):
     def __init__(self) -> None:
         super().__init__()
+
+        self.in_progress_auths = LimitedSizeDict(4096)
+
+        # TODO: Configurable api location
+        self.auth_api = GoonAuthApi("http://127.0.0.1:8001", "")
 
     # region Schemas
     def command_schemas(
@@ -89,77 +113,100 @@ class AuthCollection(interactions.EventCollection):
     async def auth(
         self, username: str, ctx: IncomingDiscordSlashInteraction
     ) -> DiscordResponse:
-        hash = "v5tyhbw546ubj57jnhws578hw68k"
-        embed = Embed(
-            type="rich",
-            title="Goon Authentication",
-            description=(
-                "Please place the following hash anywhere in the "
-                "**Additional Information** section of your Something Awful profile."
-                f"\n\n**{hash}**\n\n"
-                f"Note: The hash expires after **five minutes**\n\n"
-                'Once finished, click the "Verify Hash" button below.'
-            ),
-            colour=color.Color.teal(),
-        )
-        embed.add_field(
-            name="\u200B",
-            value=(
-                "Powerd by the opened-sourced "
-                "[Goon Auth Network](https://github.com/GoonAuthNetwork)"
-            ),
+        # TODO: Check if already authed in goon-files!
+
+        # Get a challenge
+        try:
+            challenge = await self.auth_api.get_verification(username)
+            if challenge is None:
+                return AuthResponseBuilder.challenge_error(
+                    "This error should not exist, "
+                    "please tell your nearest GAN developer.",
+                )
+        except TypeError:
+            return AuthResponseBuilder.challenge_error(
+                "Invalid username, please try again."
+            )
+
+        # Save the username & discord is.
+        # Maybe change to to only save the challenge & id?
+        # Would require a rewrite of awful-auth.
+        self.in_progress_auths[ctx.member.user.id] = username
+
+        # Send response
+        message = (
+            "Please place the following hash anywhere in the "
+            "**Additional Information** section of your Something Awful profile."
+            f"\n\n**{challenge.hash}**\n\n"
+            f"Note: The hash expires after **five minutes**\n\n"
+            'Once finished, click the "Verify Hash" button below.'
         )
 
-        action_row = ActionRow(
-            components=[
-                LinkButton(
-                    label="SA Profile",
-                    url=(
-                        "https://forums.somethingawful.com/member.php?"
-                        "action=editprofile"
-                    ),
-                ),
-                Button(
-                    label="Verify Hash",
-                    style=ButtonStyles.SUCCESS,
-                    custom_id="auth.verify",
-                ),
-            ]
-        )
+        return AuthResponseBuilder.challenge_ok(message)
 
-        return DiscordResponse(
-            content=" ", embeds=[embed], action_row=action_row, empherical=True
-        )
+    @interactions.on("auth.cancel", type=EventTypes.COMPONENT)
+    async def auth_cancel(
+        self, ctx: IncomingDiscordButtonInteraction
+    ) -> DiscordResponse:
+        # TODO: Delete from awful-auth. currently it'll time out after 5m
+
+        # Cleanup in progress auth cache
+        try:
+            self.in_progress_auths.pop(ctx.member.user.id)
+        except KeyError:
+            pass
+
+        # Send response
+        return AuthResponseBuilder.auth_cancel()
 
     @interactions.on("auth.verify", type=EventTypes.COMPONENT)
     async def auth_verify(
-        self, ctx: IncomingDiscordSlashInteraction
+        self, ctx: IncomingDiscordButtonInteraction
     ) -> DiscordResponse:
-        embed = Embed(
-            type="rich",
-            title="Goon Authentication",
-            description=(
-                "Your authentication has succeeded. "
-                "Please enjoy your new found gooniness.\n\n"
-                "If you would like to know more about the Goon Auth Network "
-                "please click below!"
-            ),
-            color=color.Colour.green(),
-        )
+        author_id = ctx.member.user.id
 
-        action_row = ActionRow(
-            components=[
-                LinkButton(label="GAN Github", url="https://github.com/GoonAuthNetwork")
-            ]
-        )
+        # Pull username from cache
+        username = self.in_progress_auths.get(author_id)
+        if username is None:
+            return AuthResponseBuilder.verification_error(
+                "Missing from the auth cache, please try again from /auth",
+            )
 
-        return DiscordResponse(
-            update_message=True,
-            content=" ",
-            embeds=[embed],
-            action_row=action_row,
-            empherical=True,
-        )
+        # Try to get the status of auth
+        try:
+            status = await self.auth_api.get_verification_update(username)
+            if status is None:
+                return AuthResponseBuilder.verification_error(
+                    "This error should not exist, "
+                    "please tell your nearest GAN developer.",
+                )
+        except ValueError:
+            return AuthResponseBuilder.verification_error(
+                "Please use the following command first: /auth",
+            )
+        except TypeError:
+            return AuthResponseBuilder.verification_error(
+                "Invalid username, please try again",
+            )
+
+        # In auth system but hash isn't on profile page
+        if not status.validated:
+            # TODO: verification_profile_hash_missing()
+            # Leave Profile/Verify/Cancel buttons, etc
+            return AuthResponseBuilder.verification_error(
+                "Failed to validate, is the hash in your profile?"
+            )
+
+        # Handle valid user
+        # goon-files.add()
+
+        # Clean up
+        try:
+            self.in_progress_auths.pop(author_id)
+        except KeyError:
+            pass
+
+        return AuthResponseBuilder.verification_ok()
 
     @interactions.on("about")
     async def about(self, ctx: IncomingDiscordSlashInteraction) -> DiscordResponse:
