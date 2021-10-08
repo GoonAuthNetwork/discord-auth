@@ -15,8 +15,8 @@ from app.mongodb import db
 from app.clients.goon_auth_api import GoonAuthApi, GoonAuthStatus
 from app.clients.goon_files_api import GoonFilesApi, Service, ServiceToken, User
 from app.commands.responses.auth_responses import AuthResponseBuilder
-from app.commands.utils import valid_sa_name
 from app.models.user_auth_request import UserAuthRequest
+from app.utils import valid_sa_name
 
 
 class AuthHandler:

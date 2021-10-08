@@ -8,8 +8,7 @@ from dispike.creating.models.permissions import (
 )
 from loguru import logger
 
-# TODO: Automatic listing of collections (auth), probably by __init__.py file
-from app.main import auth, bot, bot_settings
+from app.main import bot, bot_settings, collections
 
 # Hardcoded user ids ftw!
 user_ids = [
@@ -40,17 +39,20 @@ def start():
 def create_commands():
     """Create (or updates) all the registered commands on discord"""
 
+    # Gather commands
+    commands = []
+    for col in collections:
+        commands.extend(col.command_schemas())
+
     # Global create
     if bot_settings.guild_ids is None:
         logger.info("Creating global discord commands")
 
-        for command in auth.command_schemas():
+        for command in commands:
             bot.register(command=command)
 
     # Guild create
     else:
-        commands = auth.command_schemas()
-
         for guild_id in bot_settings.guild_ids:
             logger.info(f"Creating commands on guild (id: {guild_id})")
 
