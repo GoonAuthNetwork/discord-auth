@@ -51,16 +51,46 @@ class User:
             for dict in services:
                 self.services.append(ServiceToken(**dict))
 
+    def find_service(self, service: Service) -> Optional[ServiceToken]:
+        for serviceToken in self.services:
+            if serviceToken.service == service:
+                return serviceToken
+        return None
+
 
 class GoonFilesApi:
     def __init__(self, host: str, headers: Dict[str, str] = None) -> None:
         self.client = AsyncClient(base_url=host, headers=headers)
+
+    async def sa_name_for_service(self, service: Service, token: str) -> Optional[str]:
+        try:
+            user = await self.find_user_by_service(service, token)
+
+            if user is not None:
+                return user.userName
+        except TypeError:
+            pass
+
+        return None
 
     async def find_user_by_service(
         self, service: Service, token: str
     ) -> Optional[User]:
         payload = {"service": service.value, "token": token}
         response = await self.client.get("/user/", params=payload)
+
+        # This shouldn't happen, but who knows...
+        if response.status_code == 422:
+            raise TypeError("Invalid query parameter")
+
+        if response.status_code != 200:
+            return None
+
+        wrapped = response.json()
+        return User(**wrapped)
+
+    async def find_user(self, userId: int) -> Optional[User]:
+        response = await self.client.get(f"/user/{userId}")
 
         # This shouldn't happen, but who knows...
         if response.status_code == 422:
@@ -107,3 +137,47 @@ class GoonFilesApi:
 
         wrapped = response.json()
         return User(**wrapped)
+
+    async def add_service_token(
+        self, userId: int, serviceToken: ServiceToken
+    ) -> Optional[User]:
+        payload = {"service": serviceToken.service.value, "token": serviceToken.token}
+        if serviceToken.info is not None:
+            payload["info"] = serviceToken.info
+
+        response = await self.client.put(f"/user/{userId}/service", json=payload)
+
+        if response.status_code == 404:
+            return None
+
+        if response.status_code != 200:
+            return None
+
+        wrapped = response.json()
+        return User(**wrapped)
+
+    async def create_or_update_user(
+        self,
+        userId: int,
+        userName: str,
+        regDate: datetime,
+        serviceToken: ServiceToken,
+    ) -> Optional[User]:
+        """Creates or updates a user with the specified serviceToken
+
+        Args:
+            userId (int): [description]
+            userName (str): [description]
+            regDate (datetime): [description]
+            serviceToken (ServiceToken): [description]
+
+        Returns:
+            Optional[User]: [description]
+        """
+        user = await self.find_user(userId)
+        if user is None:
+            # Create
+            return await self.create_user(userId, userName, regDate, [serviceToken])
+        else:
+            # Update
+            return await self.add_service_token(userId, serviceToken)

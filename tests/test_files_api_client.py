@@ -51,7 +51,7 @@ async def test_check_user():
 
 
 @pytest.mark.asyncio
-async def test_add_check():
+async def test_find_by_service():
     test_user = random.choice(fake_users)
 
     # Add the user
@@ -75,3 +75,75 @@ async def test_add_check():
     assert queried.userId == test_user["userId"]
     assert queried.userName == test_user["userName"]
     assert queried.regDate == test_user["regDate"]
+
+
+@pytest.mark.asyncio
+async def test_find_user():
+    test_user = random.choice(fake_users)
+
+    # Add the user
+    user = await client.create_user(**test_user)
+
+    # Check the user
+    assert user is not None
+    assert user.userId == test_user["userId"]
+
+    # Find it
+    found = await client.find_user(test_user["userId"])
+
+    assert found is not None
+    assert found.userId == test_user["userId"]
+
+
+@pytest.mark.asyncio
+async def test_add_service():
+    test_user = random.choice(fake_users)
+
+    # Add the user
+    user = await client.create_user(**test_user)
+
+    # Check the user
+    assert user is not None
+    assert user.userId == test_user["userId"]
+    assert user.userName == test_user["userName"]
+    assert user.regDate == test_user["regDate"]
+
+    # Add/Update Service
+    updated_serverToken = ServiceToken(Service.DISCORD, "A new Token")
+
+    updated_user = await client.add_service_token(user.userId, updated_serverToken)
+
+    assert updated_user is not None
+    assert updated_user.find_service(Service.DISCORD) is not None
+    assert updated_user.find_service(Service.DISCORD).token == updated_serverToken.token
+
+
+@pytest.mark.asyncio
+async def test_create_or_update_user():
+    test_user = random.choice(fake_users)
+    test_service: ServiceToken = test_user["services"][0]
+
+    # Create
+    user = await client.create_or_update_user(
+        test_user["userId"],
+        test_user["userName"],
+        test_user["regDate"],
+        test_service,
+    )
+
+    assert user is not None
+    assert user.find_service(test_service.service) is not None
+    assert user.find_service(test_service.service).token == test_service.token
+
+    # Update
+    test_service = ServiceToken(Service.DISCORD, "A New Token")
+    updated = await client.create_or_update_user(
+        test_user["userId"],
+        test_user["userName"],
+        test_user["regDate"],
+        test_service,
+    )
+
+    assert updated is not None
+    assert updated.find_service(test_service.service) is not None
+    assert updated.find_service(test_service.service).token == test_service.token
