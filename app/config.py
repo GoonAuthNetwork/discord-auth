@@ -1,8 +1,10 @@
 import logging
 import os
-from pathlib import Path
 import sys
+
+from pathlib import Path
 from typing import List, Optional
+
 from dotenv import load_dotenv
 from loguru import logger
 from pydantic import BaseSettings, Field
@@ -17,24 +19,22 @@ if DEVELOPMENT:
 
 
 class BotSettings(BaseSettings):
+    # Discord Settings
     guild_ids: Optional[List[int]] = Field(None, env="DISCORD_GUILD_IDS")
 
     discord_bot_token: str = Field(..., env="DISCORD_BOT_TOKEN")
     discord_application_id: int = Field(..., env="DISCORD_APPLICATION_ID")
     discord_public_key: str = Field(..., env="DISCORD_PUBLIC_KEY")
 
-    auth_attempt_cache_time: int = Field(300, env="DISCORD_AUTH_ATTEMPT_CACHE_TIME")
-
-
-bot_settings = BotSettings()
-
-
-class ApiSettings(BaseSettings):
+    # Api Clients
     awful_auth_address: HttpUrl = Field(..., env="AWFUL_AUTH_ADDRESS")
     goon_files_address: HttpUrl = Field(..., env="GOON_FILES_ADDRESS")
 
+    # Bot Settings
+    auth_attempt_lifespan: int = Field(5, env="AUTH_ATTEMPT_LIFESPAN_MINS")
 
-api_settings = ApiSettings()
+
+bot_settings = BotSettings()
 
 
 class MongoSettings(BaseSettings):
@@ -53,7 +53,7 @@ class MongoSettings(BaseSettings):
         if self.connection_url is None:
             return (
                 f"mongodb://{self.username}:{self.password}@"
-                + "{self.mongo_host}:{self.mongo_port}/"
+                + f"{self.mongo_host}:{self.mongo_port}/"
             )
 
         return self.connection_url

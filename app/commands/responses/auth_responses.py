@@ -4,7 +4,14 @@ from dispike.response import DiscordResponse
 
 
 class AuthResponseBuilder:
-    def challenge_ok(message: str) -> DiscordResponse:
+    def challenge_ok(hash: str) -> DiscordResponse:
+        message = (
+            "Please place the following hash anywhere in the "
+            "**Additional Information** section of your Something Awful profile."
+            f"\n\n**{hash}**\n\n"
+            f"Note: The hash expires after **five minutes**\n\n"
+            'Once finished, click the "Verify Hash" button below.'
+        )
         embed = Embed(
             type="rich",
             title="Goon Authentication",
@@ -86,16 +93,21 @@ class AuthResponseBuilder:
             empherical=True,
         )
 
-    def verification_ok(update_message: bool = True) -> DiscordResponse:
-        embed = Embed(
-            type="rich",
-            title="Goon Authentication",
-            description=(
+    def verification_ok(
+        message: str = None, update_message: bool = True
+    ) -> DiscordResponse:
+        if message is None:
+            message = (
                 "Your're finally validated! "
                 "Please enjoy your new found gooniness.\n\n"
                 "If you would like to know more about the Goon Auth Network "
                 "please click below!"
-            ),
+            )
+
+        embed = Embed(
+            type="rich",
+            title="Goon Authentication",
+            description=message,
             color=color.Colour.green(),
         )
 
