@@ -1,5 +1,6 @@
 import typing
 from collections import OrderedDict
+
 from dispike import interactions, IncomingDiscordSlashInteraction
 from dispike.creating.models.options import (
     CommandChoice,
@@ -11,7 +12,10 @@ from dispike.eventer import EventTypes
 from dispike.incoming.incoming_interactions import IncomingDiscordButtonInteraction
 from dispike.response import DiscordResponse
 
+from loguru import logger
+
 from app.clients.goon_auth_api import GoonAuthApi
+from app.clients.goon_files_api import GoonFilesApi, Service, ServiceToken
 from app.commands.responses import (
     AboutResponseBuilder,
     AuthResponseBuilder,
@@ -40,8 +44,9 @@ class AuthCollection(interactions.EventCollection):
 
         self.in_progress_auths = LimitedSizeDict(4096)
 
-        # TODO: Configurable api location
+        # TODO: Configurable api locations
         self.auth_api = GoonAuthApi("http://127.0.0.1:8001", "")
+        self.files_api = GoonFilesApi("http://127.0.0.1:8002", "")
 
     # region Schemas
     def command_schemas(
@@ -116,7 +121,24 @@ class AuthCollection(interactions.EventCollection):
     async def auth(
         self, username: str, ctx: IncomingDiscordSlashInteraction
     ) -> DiscordResponse:
-        # TODO: Check if already authed in goon-files!
+        author_id = ctx.member.user.id
+
+        # Check if already authed in goon-files!
+        username = await self.files_api.sa_name_for_service(Service.DISCORD, author_id)
+        if username is not None:
+
+            # Previously auth'd give role
+            if await self.grant_goon_role(author_id, ctx.guild_id):
+                return AuthResponseBuilder.verification_ok()
+
+            # Either already have the role or something went wrong
+            # TODO: handle something went wrong
+            else:
+                return AuthResponseBuilder.challenge_error(
+                    f"You're already authed as ({username})"
+                    "[https://forums.somethingawful.com/member.php?"
+                    f"action=getinfo&username={username}]!"
+                )
 
         # Get a challenge
         try:
@@ -198,14 +220,32 @@ class AuthCollection(interactions.EventCollection):
             # the original hash/verify/cancel buttons remain
             return AuthResponseBuilder.verification_profile_hash_missing()
 
-        # Handle valid user
-        # goon-files.add()
-
-        # Clean up
+        # By this point we're authed, clean up & handle the rest
         try:
             self.in_progress_auths.pop(author_id)
         except KeyError:
             pass
+
+        # Create or update the user in goon-files
+        user = await self.files_api.create_or_update_user(
+            userId=status.user_id,
+            userName=status.user_name,
+            regDate=status.register_date,
+            serviceToken=ServiceToken(Service.DISCORD, author_id),
+        )
+
+        # Something went wrong...
+        if user is None:
+            return AuthResponseBuilder.verification_error(
+                "Failed to save auth to database, please see a GAN admin."
+            )
+
+        # Update goon with role
+        if not await self.grant_goon_role(author_id, ctx.guild_id):
+            return AuthResponseBuilder.verification_error(
+                "Failed to grand role, please see a GAN admin "
+                "and/or your local server admin."
+            )
 
         return AuthResponseBuilder.verification_ok()
 
@@ -239,3 +279,8 @@ class AuthCollection(interactions.EventCollection):
         )
 
     # endregion
+
+    async def grant_goon_role(self, author_id: int, server_id: int) -> bool:
+        # TODO: guild db with role info from /options
+        logger.debug(f"Granting {author_id} goon status on {server_id}")
+        pass
