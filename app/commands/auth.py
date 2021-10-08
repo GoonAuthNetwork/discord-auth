@@ -45,7 +45,7 @@ class AuthCollection(interactions.EventCollection):
                         name="username",
                         description="Your username on Something Awful",
                         type=OptionTypes.STRING,
-                        required=True,
+                        required=False,
                     )
                 ],
             )

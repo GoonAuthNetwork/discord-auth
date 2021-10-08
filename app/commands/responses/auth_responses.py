@@ -125,7 +125,9 @@ class AuthResponseBuilder:
             empherical=True,
         )
 
-    def verification_error(message: str) -> DiscordResponse:
+    def verification_error(
+        message: str, update_message: bool = True
+    ) -> DiscordResponse:
         embed = Embed(
             type="rich",
             title="Goon Authentication",
@@ -144,7 +146,7 @@ class AuthResponseBuilder:
         )
 
         return DiscordResponse(
-            update_message=True,
+            update_message=update_message,
             content=" ",
             embeds=[embed],
             action_row=action_row,

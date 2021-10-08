@@ -37,21 +37,24 @@ class AuthHandler:
     async def process_auth(
         self, ctx: IncomingDiscordSlashInteraction, **kwargs
     ) -> DiscordResponse:
-        username: str = kwargs.get("username")
-
-        if not valid_sa_name(username):
-            return AuthResponseBuilder.verification_error(
-                "Invalid username, please try again"
-            )
+        username: str = kwargs.get("username", None)
 
         user = await self.files_api.find_user_by_service(
             service=Service.DISCORD, token=ctx.member.user.id
         )
 
+        # Handle a new user
         if user is None:
+            if not valid_sa_name(username):
+                return AuthResponseBuilder.verification_error(
+                    "Hello new user, you seem to have entered an invalid username or "
+                    "forgot to enter one altogether. Please try the command again!",
+                    update_message=False,
+                )
+
             return await self.__auth_new(username, ctx)
 
-        if user.userName.lower() != username.lower():
+        if username is not None and user.userName.lower() != username.lower():
             return AuthResponseBuilder.verification_error("That's not your sa name!")
 
         return await self.__auth_existing(user, ctx)
