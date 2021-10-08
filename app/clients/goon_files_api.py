@@ -33,18 +33,20 @@ class User:
         self,
         userId: int,
         userName: str,
-        regDate: datetime,
-        createdAt: datetime,
-        permaBanned: Optional[datetime] = None,
+        regDate: str,
+        createdAt: str,
+        permaBanned: Optional[str] = None,
         services: Optional[List[Dict[str, str]]] = None,
     ) -> None:
         self.userId = userId
         self.userName = userName
-        self.createdAt = createdAt
         self.permaBanned = permaBanned
 
         if regDate is not None:
             self.regDate = datetime.fromisoformat(regDate)
+
+        if createdAt is not None:
+            self.createdAt = datetime.fromisoformat(createdAt)
 
         if services is not None:
             self.services = []
