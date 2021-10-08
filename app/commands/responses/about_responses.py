@@ -23,7 +23,7 @@ class AboutResponseBuilder:
         embed.add_field(
             name="Authenticated",
             value=(
-                "[{username}](https://forums.somethingawful.com/member.php?"
+                f"[{username}](https://forums.somethingawful.com/member.php?"
                 f"action=getinfo&userid={user_id})"
             ),
             inline=True,
