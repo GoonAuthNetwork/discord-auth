@@ -8,11 +8,15 @@
             "name": "Python: Discord Bot",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/app/main.py",
-            "console": "integratedTerminal",
+            "module": "uvicorn",
+            "args": [
+                "app.main:bot.referenced_application",
+                "--reload",
+                "--reload-dir='${workspaceRoot}/app'",
+                "--port=8080"
+            ],
             "env": {
-                "development": "true",
-                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+                "development": "true"
             },
             "justMyCode": false
         },
