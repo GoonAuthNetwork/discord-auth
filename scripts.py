@@ -17,6 +17,10 @@ user_ids = [
     132205334520397826,  # Tuxide
 ]
 
+role_ids = [
+    895861910199746591,  # Bot Tester @ GDN Hub
+]
+
 
 def start():
     """Laucnhes the application via uvicorn"""
@@ -55,14 +59,21 @@ def create_commands():
 
 
 def update_command_permissions():
-    permissions = map(
+    user_perms = map(
         lambda id: ApplicationCommandPermissions(
             id=id, type=ApplicationCommandPermissionType.USER, permission=True
         ),
         user_ids,
     )
 
-    new_perms = NewApplicationPermission(permissions=list(permissions))
+    group_perms = map(
+        lambda id: ApplicationCommandPermissions(
+            id=id, type=ApplicationCommandPermissionType.ROLE, permission=True
+        ),
+        role_ids,
+    )
+
+    new_perms = NewApplicationPermission(permissions=[*user_perms, *group_perms])
 
     # Loop guild ids
     for guild_id in bot_settings.guild_ids:
