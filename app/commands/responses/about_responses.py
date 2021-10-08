@@ -1,5 +1,4 @@
 from datetime import datetime
-from urllib.parse import quote_plus
 
 from dispike.helper import Embed, color
 from dispike.response import DiscordResponse
@@ -11,7 +10,9 @@ class AboutResponseBuilder:
         "ethics of discord goon authentication here."
     )
 
-    def about_authed(username: str, auth_date: datetime) -> DiscordResponse:
+    def about_authed(
+        username: str, user_id: int, auth_date: datetime
+    ) -> DiscordResponse:
         embed = Embed(
             type="rich",
             title="About GoonAuthNetwork",
@@ -22,8 +23,8 @@ class AboutResponseBuilder:
         embed.add_field(
             name="Authenticated",
             value=(
-                "[NotOats](https://forums.somethingawful.com/member.php?"
-                f"action=getinfo&username={quote_plus(username)})"
+                "[{username}](https://forums.somethingawful.com/member.php?"
+                f"action=getinfo&userid={user_id})"
             ),
             inline=True,
         )

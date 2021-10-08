@@ -6,6 +6,7 @@ from typing import List, Optional
 from dotenv import load_dotenv
 from loguru import logger
 from pydantic import BaseSettings, Field
+from pydantic import HttpUrl
 
 DEVELOPMENT = os.environ.get("development", "False") == "True"
 
@@ -26,6 +27,14 @@ class BotSettings(BaseSettings):
 
 
 bot_settings = BotSettings()
+
+
+class ApiSettings(BaseSettings):
+    awful_auth_address: HttpUrl = Field(..., env="AWFUL_AUTH_ADDRESS")
+    goon_files_address: HttpUrl = Field(..., env="GOON_FILES_ADDRESS")
+
+
+api_settings = ApiSettings()
 
 
 class MongoSettings(BaseSettings):

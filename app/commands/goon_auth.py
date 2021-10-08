@@ -14,6 +14,7 @@ from dispike.response import DiscordResponse
 
 from loguru import logger
 
+from app.config import api_settings
 from app.clients.goon_auth_api import GoonAuthApi
 from app.clients.goon_files_api import GoonFilesApi, Service, ServiceToken
 from app.commands.responses import (
@@ -44,9 +45,11 @@ class AuthCollection(interactions.EventCollection):
 
         self.in_progress_auths = LimitedSizeDict(4096)
 
-        # TODO: Configurable api locations
-        self.auth_api = GoonAuthApi("http://127.0.0.1:8001", "")
-        self.files_api = GoonFilesApi("http://127.0.0.1:8002", "")
+        logger.info(f"Using GoonAuthApi at {api_settings.awful_auth_address}")
+        self.auth_api = GoonAuthApi(api_settings.awful_auth_address, "")
+
+        logger.info(f"Using GoonFilesApi at {api_settings.goon_files_address}")
+        self.files_api = GoonFilesApi(api_settings.goon_files_address, "")
 
     # region Schemas
     def command_schemas(
@@ -54,7 +57,7 @@ class AuthCollection(interactions.EventCollection):
     ) -> typing.List[
         typing.Union[interactions.PerCommandRegistrationSettings, DiscordCommand]
     ]:
-        return [
+        commands = [
             DiscordCommand(
                 name="auth",
                 description=(
@@ -114,6 +117,10 @@ class AuthCollection(interactions.EventCollection):
             ),
         ]
 
+        names = ", ".join(map(lambda x: x.name, commands))
+        logger.info(f"AuthCollection created {len(commands)} commands ({names})")
+        return commands
+
     # endregion
 
     # region Handlers
@@ -124,26 +131,36 @@ class AuthCollection(interactions.EventCollection):
         author_id = ctx.member.user.id
 
         # Check if already authed in goon-files!
-        username = await self.files_api.sa_name_for_service(Service.DISCORD, author_id)
-        if username is not None:
+        user = await self.files_api.find_user_by_service(
+            Service.DISCORD, ctx.member.user.id
+        )
+        if user is not None:
+            logger.debug(
+                "Previously authed - "
+                f"guild: {ctx.guild_id}, author: {author_id}, user: {user.userName}"
+            )
 
             # Previously auth'd give role
             if await self.grant_goon_role(author_id, ctx.guild_id):
-                return AuthResponseBuilder.verification_ok()
+                return AuthResponseBuilder.verification_ok(update_message=False)
 
             # Either already have the role or something went wrong
             # TODO: handle something went wrong
             else:
                 return AuthResponseBuilder.challenge_error(
-                    f"You're already authed as ({username})"
+                    f"You're already authed as ({user.userName})"
                     "[https://forums.somethingawful.com/member.php?"
-                    f"action=getinfo&username={username}]!"
+                    f"action=getinfo&userId={user.userId}]!"
                 )
 
         # Get a challenge
         try:
             challenge = await self.auth_api.get_verification(username)
             if challenge is None:
+                logger.error(
+                    "Challenge is empty while getting verification - "
+                    f"guild: {ctx.guild_id}, author: {author_id}, user: {username}"
+                )
                 return AuthResponseBuilder.challenge_error(
                     "This error should not exist, "
                     "please tell your nearest GAN developer.",
@@ -167,6 +184,10 @@ class AuthCollection(interactions.EventCollection):
             'Once finished, click the "Verify Hash" button below.'
         )
 
+        logger.debug(
+            f"Generated challenge - hash: {challenge.hash}, "
+            f"user: {challenge.user_name}, author: {author_id}"
+        )
         return AuthResponseBuilder.challenge_ok(message)
 
     @interactions.on("auth.cancel", type=EventTypes.COMPONENT)
@@ -180,6 +201,8 @@ class AuthCollection(interactions.EventCollection):
             self.in_progress_auths.pop(ctx.member.user.id)
         except KeyError:
             pass
+
+        logger.debug(f"Cancelled auth - author: {ctx.member.user.id}")
 
         # Send response
         return AuthResponseBuilder.verification_cancel()
@@ -201,6 +224,10 @@ class AuthCollection(interactions.EventCollection):
         try:
             status = await self.auth_api.get_verification_update(username)
             if status is None:
+                logger.error(
+                    "Challenge update returned None - "
+                    f"guild: {ctx.guild_id}, author: {author_id}, user: {username}"
+                )
                 return AuthResponseBuilder.verification_error(
                     "This error should not exist, "
                     "please tell your nearest GAN developer.",
@@ -218,6 +245,7 @@ class AuthCollection(interactions.EventCollection):
         if not status.validated:
             # This prints a new message with the error to ensure
             # the original hash/verify/cancel buttons remain
+            # TODO: Rate limit here
             return AuthResponseBuilder.verification_profile_hash_missing()
 
         # By this point we're authed, clean up & handle the rest
@@ -236,24 +264,42 @@ class AuthCollection(interactions.EventCollection):
 
         # Something went wrong...
         if user is None:
+            logger.error(
+                "Failed to save auth to db - "
+                f"guild: {ctx.guild_id}, author: {author_id}, user: {username}"
+            )
             return AuthResponseBuilder.verification_error(
                 "Failed to save auth to database, please see a GAN admin."
             )
 
         # Update goon with role
         if not await self.grant_goon_role(author_id, ctx.guild_id):
+            logger.error(
+                "Failed to save grant role - "
+                f"guild: {ctx.guild_id}, author: {author_id}, user: {username}"
+            )
             return AuthResponseBuilder.verification_error(
-                "Failed to grand role, please see a GAN admin "
+                "Failed to grant role, please see a GAN admin "
                 "and/or your local server admin."
             )
+
+        logger.debug(
+            "Authed user - "
+            "guild: {ctx.guild_id}, author: {author_id}, user: {username}"
+        )
 
         return AuthResponseBuilder.verification_ok()
 
     @interactions.on("about")
     async def about(self, ctx: IncomingDiscordSlashInteraction) -> DiscordResponse:
         # Pull Auth records and choose a response
-        # if authed:
-        #    AboutResponseBuilder.about_authed()
+        user = await self.files_api.find_user_by_service(
+            Service.DISCORD, ctx.member.user.id
+        )
+        if user is not None:
+            return AboutResponseBuilder.about_authed(
+                user.userName, user.userId, user.createdAt
+            )
 
         return AboutResponseBuilder.about_anonymous()
 
@@ -282,5 +328,6 @@ class AuthCollection(interactions.EventCollection):
 
     async def grant_goon_role(self, author_id: int, server_id: int) -> bool:
         # TODO: guild db with role info from /options
-        logger.debug(f"Granting {author_id} goon status on {server_id}")
-        pass
+        logger.debug(f"Granting goon status - user: {author_id}, server: {server_id}")
+
+        return True
