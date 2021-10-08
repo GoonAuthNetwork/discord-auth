@@ -1,11 +1,21 @@
 import os
 import uvicorn
 
-from dispike.incoming.incoming_interactions import IncomingApplicationCommand
+from dispike.creating.models.permissions import (
+    ApplicationCommandPermissions,
+    ApplicationCommandPermissionType,
+    NewApplicationPermission,
+)
 from loguru import logger
 
 # TODO: Automatic listing of collections (auth), probably by __init__.py file
 from app.main import auth, bot, bot_settings
+
+# Hardcoded user ids ftw!
+user_ids = [
+    123435280870014976,  # NotOats
+    132205334520397826,  # Tuxide
+]
 
 
 def start():
@@ -31,7 +41,7 @@ def create_commands():
         logger.info("Creating global discord commands")
 
         for command in auth.command_schemas():
-            register_command(command)
+            bot.register(command=command)
 
     # Guild create
     else:
@@ -41,7 +51,28 @@ def create_commands():
             logger.info(f"Creating commands on guild (id: {guild_id})")
 
             for command in commands:
-                register_command(command, guild_id)
+                bot.register(command=command, guild_only=True, guild_to_target=guild_id)
+
+
+def update_command_permissions():
+    permissions = map(
+        lambda id: ApplicationCommandPermissions(
+            id=id, type=ApplicationCommandPermissionType.USER, permission=True
+        ),
+        user_ids,
+    )
+
+    new_perms = NewApplicationPermission(permissions=list(permissions))
+
+    # Loop guild ids
+    for guild_id in bot_settings.guild_ids:
+        logger.info(f"Updating permissions on guild(id: {guild_id})")
+
+        # Pull commands from discord & update them
+        for command in bot.get_commands(guild_only=True, guild_id_passed=str(guild_id)):
+            bot.set_command_permission(
+                command_id=command, guild_id=guild_id, new_permissions=new_perms
+            )
 
 
 def delete_commands():
@@ -58,7 +89,7 @@ def delete_commands():
         if yes_or_no("Confirm deletion"):
             # Hope you like waiting an hour for global commands to refresh!
             for command in bot.get_commands():
-                delete_command(command)
+                bot.delete_command(command)
 
     # Guild delete
     else:
@@ -68,24 +99,10 @@ def delete_commands():
             for command in bot.get_commands(
                 guild_only=True, guild_id_passed=str(guild_id)
             ):
-                delete_command(command, guild_id)
+                bot.delete_command(command, guild_only=True, guild_id_passed=guild_id)
 
 
 # region Utils
-
-
-def register_command(command: IncomingApplicationCommand, guild_id: int = None):
-    if guild_id is None:
-        bot.register(command=command)
-    else:
-        bot.register(command=command, guild_only=True, guild_to_target=guild_id)
-
-
-def delete_command(command: IncomingApplicationCommand, guild_id: int = None):
-    if guild_id is None:
-        bot.delete_command(command)
-    else:
-        bot.delete_command(command, guild_only=True, guild_id_passed=guild_id)
 
 
 def yes_or_no(question: str) -> bool:

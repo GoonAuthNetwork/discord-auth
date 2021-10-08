@@ -29,6 +29,7 @@ development="True"
 [tool.poe.tasks]
 start={ script="scripts:start"}
 create_commands={ script="scripts:create_commands" }
+update_permissions={ script="scripts:update_command_permissions" }
 delete_commands={ script="scripts:delete_commands" }
 
 [build-system]
