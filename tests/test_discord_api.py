@@ -16,6 +16,15 @@ def client() -> DiscordClient:
 
 @pytest.mark.asyncio
 async def test_get_guild(client: DiscordClient):
+    guild_id = 895331501892337754
+
+    guild = await client.get_guild(guild_id)
+
+    assert guild.id == 895331501892337754
+
+
+@pytest.mark.asyncio
+async def test_get_channel(client: DiscordClient):
     channel = await client.get_channel(895331501892337759)
 
     assert channel is not None

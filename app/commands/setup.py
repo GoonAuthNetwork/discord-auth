@@ -6,6 +6,8 @@ from dispike.incoming.incoming_interactions import IncomingDiscordSlashInteracti
 from dispike.response import DiscordResponse
 from loguru import logger
 
+from app.clients.discord_api.client import DiscordClient
+from app.config import bot_settings
 from app.commands.responses import SetupResponseBuilder
 from app.models.goon_server import GoonServer, ServerOption
 
@@ -13,6 +15,7 @@ from app.models.goon_server import GoonServer, ServerOption
 class SetupCollection(interactions.EventCollection):
     def __init__(self, **kwargs) -> None:
         super().__init__()
+        self.discord_api = DiscordClient(bot_settings.discord_bot_token)
 
     def command_schemas(
         self,
@@ -91,7 +94,13 @@ class SetupCollection(interactions.EventCollection):
 
         return SetupResponseBuilder.setup_ok(server)
 
-    async def __find_server_owner(self, serverId: int) -> int:
+    async def __find_server_owner(self, serverId: int) -> typing.Optional[int]:
+        guild = await self.discord_api.get_guild(serverId)
+        if guild is None:
+            return None
+
+        return guild.owner_id
+
         # TODO: Find server owner via rest api: GET /guilds/{guild.id}
         # For now, I am the owner
         return 123435280870014976

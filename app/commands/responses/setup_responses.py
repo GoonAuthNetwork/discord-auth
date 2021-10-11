@@ -52,7 +52,7 @@ class SetupResponseBuilder:
         message = (
             "Congratulations, you now have stairs in your server!\n"
             "If you need any help with the bot please visit the GAN discord "
-            "which can be found <insert link>.\n\n"
+            "which can be found (here)[https://discord.gg/AW63YNcaDf].\n\n"
             "The server was setup with the following options, "
             "to change them please type `/config`."
         )

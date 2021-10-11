@@ -4,7 +4,8 @@ from urllib.parse import quote
 from httpx import AsyncClient, Response
 from loguru import logger
 
-from app.clients.discord_api.models.channel import Channel, CreateMessage
+from .models.channel import Channel, CreateMessage
+from .models.guild import Guild
 
 from .constants import AuthType, HttpMethods, DiscordHeaders
 from .endpoints import Api
@@ -87,6 +88,16 @@ class DiscordClient:
 
         if response.status_code == 200:
             return Channel(**response.json())
+
+        return None
+
+    async def get_guild(self, guildId) -> Guild:
+        path = Api.GUILD.format(guildId=guildId)
+
+        response = await self.__request(path, HttpMethods.GET)
+
+        if response.status_code == 200:
+            return Guild(**response.json())
 
         return None
 
