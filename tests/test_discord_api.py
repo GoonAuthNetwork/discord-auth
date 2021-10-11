@@ -3,6 +3,7 @@ import pytest
 from dotenv import dotenv_values
 
 from app.clients.discord_api.client import DiscordClient
+from app.clients.discord_api.models.channel import CreateMessage
 
 
 @pytest.fixture
@@ -46,3 +47,14 @@ async def test_add_remove_roll(client: DiscordClient):
     removed = await client.remove_guild_member_role(guild, user, role)
 
     assert removed
+
+
+@pytest.mark.asyncio
+async def test_create_message(client: DiscordClient):
+    channelId = 895853898483511376
+
+    message = CreateMessage(content="Does it work?!")
+
+    messageId = await client.create_message(channelId, message)
+
+    assert messageId is not None

@@ -1,10 +1,10 @@
-from typing import Optional
+from typing import Any, Dict, Optional
 from urllib.parse import quote
 
 from httpx import AsyncClient, Response
 from loguru import logger
 
-from app.clients.discord_api.models.channel import Channel
+from app.clients.discord_api.models.channel import Channel, CreateMessage
 
 from .constants import AuthType, HttpMethods, DiscordHeaders
 from .endpoints import Api
@@ -42,7 +42,11 @@ class DiscordClient:
         return f"{self.authType.value} {self.token}"
 
     async def __request(
-        self, path: str, method: HttpMethods = HttpMethods.GET, headers=None
+        self,
+        path: str,
+        method: HttpMethods = HttpMethods.GET,
+        headers: Optional[Dict[str, Any]] = None,
+        json: Optional[Dict[str, Any]] = None,
     ) -> Response:
         _headers = {"Authorization": self.__token_formatted()}
 
@@ -54,13 +58,28 @@ class DiscordClient:
         logger.debug(f"API REQUEST: {method.value} {url}")
 
         response = await self.client.request(
-            method=method.value, url=url, headers=_headers
+            method=method.value, url=url, headers=_headers, json=json
         )
 
         if self.errorOnRateLimit and response.status_code == 429:
             raise RatelimitExceeded(int(response.headers.get("Retry-After")))
 
         return response
+
+    async def create_message(
+        self, channelId: int, message: CreateMessage
+    ) -> Optional[int]:
+        """Creates a message in the specified channel. Returns the message id or None"""
+        path = Api.CHANNEL_MESSAGES.format(channelId=channelId)
+        response = await self.__request(
+            path=path, method=HttpMethods.POST, json=message.request_data()
+        )
+
+        if response.status_code != 200:
+            return None
+
+        data: Dict[str, Any] = response.json()
+        return data.get("id", None)
 
     async def get_channel(self, channelId: int) -> Optional[Channel]:
         path = Api.CHANNEL.format(channelId=channelId)
