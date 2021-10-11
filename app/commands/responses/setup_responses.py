@@ -65,8 +65,10 @@ class SetupResponseBuilder:
         )
 
         for opt, value in server.options.items():
+            value = opt.format_value_for_mention(value)
+
             embed.add_field(
-                name=opt.value.replace("_", " ").title(), value=value, inline=True
+                name=opt.value.replace("_", " ").title(), value=f"{value}", inline=True
             )
 
         embed.add_field(

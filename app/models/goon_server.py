@@ -12,6 +12,15 @@ class ServerOption(str, Enum):
     NOTICE_CHANNEL_AUTH = "auth_notice_channel"
     NOTICE_CHANNEL_ADMIN = "admin_notice_channel"
 
+    def format_value_for_mention(self, value: str) -> typing.Optional[str]:
+        formats = {
+            self.AUTH_ROLE: "<@&{value}>",
+            self.NOTICE_CHANNEL_ADMIN: "<#{value}>",
+            self.NOTICE_CHANNEL_AUTH: "<#{value}>",
+        }
+
+        return formats.get(self.value, "").format(value=value)
+
 
 class GoonServer(odmantic.Model):
     serverId: int = odmantic.Field(..., title="The discord server's id")
