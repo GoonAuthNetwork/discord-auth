@@ -5,7 +5,12 @@ from loguru import logger
 from app.clients.goon_auth_api import GoonAuthApi
 from app.clients.goon_files_api import GoonFilesApi
 from app.config import bot_settings, logging_settings
-from app.commands import AuthCollection, InfoCollection, OptionsCollection
+from app.commands import (
+    AuthCollection,
+    InfoCollection,
+    # OptionsCollection,
+    SetupCollection,
+)
 from app.mongodb import connect_to_mongo, close_mongo_connection
 
 logging_settings.setup_loguru()
@@ -30,7 +35,9 @@ apis = {
 collections: List[interactions.EventCollection] = [
     AuthCollection(**apis),
     InfoCollection(**apis),
-    OptionsCollection(**apis),
+    # The Dispike models are broken. No options, atleast in this schema, for now
+    # OptionsCollection(bot, **apis),
+    SetupCollection(**apis),
 ]
 
 for col in collections:

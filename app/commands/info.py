@@ -32,7 +32,7 @@ class InfoCollection(interactions.EventCollection):
         ]
 
         names = ", ".join(map(lambda x: x.name, commands))
-        logger.info(f"OptionsCollection created {len(commands)} commands ({names})")
+        logger.info(f"InfoCollection created {len(commands)} commands ({names})")
         return commands
 
     @interactions.on("about")

@@ -1,19 +1,28 @@
 import typing
 
-from dispike import interactions
+from dispike import interactions, IncomingDiscordSlashInteraction
 from dispike.creating.models.options import (
-    CommandChoice,
     CommandOption,
     DiscordCommand,
     OptionTypes,
 )
+from dispike.eventer import EventTypes
+from dispike.main import Dispike
 from dispike.response import DiscordResponse
 from loguru import logger
 
 
+class OptionHandler(typing.Protocol):
+    def __call__(
+        self, ctx: IncomingDiscordSlashInteraction, **kwargs: typing.Any
+    ) -> DiscordResponse:
+        ...
+
+
 class OptionsCollection(interactions.EventCollection):
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, bot: Dispike, **kwargs) -> None:
         super().__init__()
+        self.bot = bot
 
     def command_schemas(
         self,
@@ -25,35 +34,18 @@ class OptionsCollection(interactions.EventCollection):
                 name="options",
                 description=(
                     "Various options for the server owner to play with. "
-                    "These apply to authing on **your** server only."
+                    "These apply to **your** server only."
                 ),
                 options=[
-                    CommandOption(
-                        name="key",
-                        description="The option to show/change.",
-                        type=OptionTypes.STRING,
-                        required=True,
-                        choices=[
-                            CommandChoice(name="Auth - Goon Role", value="goon-role"),
-                            CommandChoice(
-                                name="Auth - SA Account Age (in days)",
-                                value="sa-account-age",
-                            ),
-                            CommandChoice(
-                                name="Notifications - Auth Channel",
-                                value="auth-info-chan",
-                            ),
-                            CommandChoice(
-                                name="Notifications - Perma Ban Channel",
-                                value="auth-info-chan",
-                            ),
-                        ],
+                    self.__create_option(
+                        "authenticated_role",
+                        "The role to give to authenticated users.",
+                        self.__handle_authenticated_role,
                     ),
-                    CommandOption(
-                        name="value",
-                        description="The option's value to set.",
-                        type=OptionTypes.STRING,
-                        required=False,
+                    self.__create_option(
+                        "auth_notification_channel",
+                        "The channel to send notifications of authentications to.",
+                        self.__handle_auth_notification_channel,
                     ),
                 ],
             ),
@@ -63,19 +55,42 @@ class OptionsCollection(interactions.EventCollection):
         logger.info(f"OptionsCollection created {len(commands)} commands ({names})")
         return commands
 
-    @interactions.on("options")
-    async def options(self, **kwargs) -> DiscordResponse:
-        key = kwargs.get("key")
-        value = kwargs.get("value")
-        # ctx = kwargs.get("ctx")
+    def __create_option(
+        self,
+        name: str,
+        description: str,
+        handler: OptionHandler,
+        type: OptionTypes = OptionTypes.STRING,
+    ) -> CommandOption:
+        # Set handler
+        self.bot.on(f"options.{name}", type=EventTypes.COMMAND, func=handler)
 
-        if value is None:
-            value = "DEFAULT/EXISTING"
-            update = False
-        else:
-            update = True
-
-        return DiscordResponse(
-            content=f"show_goon_role! - {key}:{value} - update: {update}",
-            empherical=True,
+        # Create the option
+        return CommandOption(
+            name=name,
+            description=description,
+            type=OptionTypes.SUB_COMMAND,
+            options=[
+                CommandOption(
+                    name="set",
+                    description="Value to change this option to.",
+                    type=type,
+                    required=False,
+                )
+            ],
         )
+
+    async def __handle_authenticated_role(
+        self, ctx: IncomingDiscordSlashInteraction, **kwargs
+    ) -> DiscordResponse:
+        return DiscordResponse("HANDLE AUTHENTICATED ROLE", empherical=True)
+
+    async def __handle_auth_notification_channel(
+        self, ctx: IncomingDiscordSlashInteraction, **kwargs
+    ) -> DiscordResponse:
+        return DiscordResponse("HANDLE AUTH NOTIFICATION CHANNEL", empherical=True)
+
+    # This has to exist for dumb dispike EventCollection registering reasons
+    @interactions.on("options.authenticated_role")
+    async def options(self, **kwargs) -> DiscordResponse:
+        return DiscordResponse("HANDLE AUTHENTICATED ROLE - STATIC", empherical=True)
