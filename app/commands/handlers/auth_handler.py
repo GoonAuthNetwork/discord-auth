@@ -11,7 +11,9 @@ from dispike.response import DiscordResponse
 from loguru import logger
 
 from app.config import bot_settings
+from app.models.goon_server import GoonServer, ServerOption
 from app.mongodb import db
+from app.clients.discord_api import DiscordClient
 from app.clients.goon_auth_api import GoonAuthApi, GoonAuthStatus
 from app.clients.goon_files_api import GoonFilesApi, Service, ServiceToken, User
 from app.commands.responses.auth_responses import AuthResponseBuilder
@@ -33,6 +35,8 @@ class AuthHandler:
 
         self.auth_api = auth_api
         self.files_api = files_api
+
+        self.discord_api = DiscordClient(bot_settings.discord_bot_token)
 
     async def process_auth(
         self, ctx: IncomingDiscordSlashInteraction, **kwargs
@@ -277,8 +281,11 @@ class AuthHandler:
         Returns:
             bool: True if the user has the role
         """
-        # TODO: __check_user_auth_role impl
-        return False
+        role_id = await GoonServer.find_option(guild_id, ServerOption.AUTH_ROLE)
+        if role_id is None:
+            return False
+
+        return any(role_id == id for id in member.roles)
 
     async def __grant_user_auth_role(self, member: Member, guild_id: int) -> bool:
         """Grants a user the correct authorized role in a guild.
@@ -291,8 +298,20 @@ class AuthHandler:
             bool: True if the role was granted, otherwise false.
         """
         # TODO: __grant_user_auth_role impl
+        role_id = await GoonServer.find_option(guild_id, ServerOption.AUTH_ROLE)
+        if role_id is None:
+            return False
+
+        try:
+            role_id = int(role_id)
+        except ValueError:
+            return False
+
         logger.debug(
-            f"Granting goon status - user: {member.user.id}, server: {guild_id}"
+            f"Granting goon status - user: {member.user.id}, "
+            f"server: {guild_id}, role: {role_id}"
         )
 
-        return True
+        return await self.discord_api.add_guild_member_role(
+            guild_id, member.user.id, int(role_id)
+        )

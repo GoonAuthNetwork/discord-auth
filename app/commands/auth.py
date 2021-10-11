@@ -19,7 +19,10 @@ from app.commands.handlers.auth_handler import AuthHandler
 
 class AuthCollection(interactions.EventCollection):
     def __init__(
-        self, auth_api: GoonAuthApi, files_api: GoonFilesApi, **kwargs
+        self,
+        auth_api: GoonAuthApi,
+        files_api: GoonFilesApi,
+        **kwargs,
     ) -> None:
         super().__init__()
 
@@ -77,31 +80,3 @@ class AuthCollection(interactions.EventCollection):
         return await self.auth_handler.process_auth_verify(ctx)
 
     # endregion
-
-    async def check_goon_role(self, author_id: int, server_id: int) -> bool:
-        """Checks if a goon has the specified role on the server
-
-        Args:
-            author_id (int): goon's discord id
-            server_id (int): server's discord id
-
-        Returns:
-            bool: True if the goon has the role
-        """
-
-        return False
-
-    async def grant_goon_role(self, author_id: int, server_id: int) -> bool:
-        """Grants a goon the correct role for the server
-
-        Args:
-            author_id (int): goon's discord id
-            server_id (int): server's discord id
-
-        Returns:
-            bool: True if the role was granted
-        """
-        # TODO: guild db with role info from /options
-        logger.debug(f"Granting goon status - user: {author_id}, server: {server_id}")
-
-        return True
