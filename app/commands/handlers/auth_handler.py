@@ -10,6 +10,7 @@ from dispike.response import DiscordResponse
 
 from loguru import logger
 
+from app.clients.discord_api.models.channel import CreateMessage
 from app.config import bot_settings
 from app.models.goon_server import GoonServer, ServerOption
 from app.mongodb import db
@@ -143,12 +144,12 @@ class AuthHandler:
 
         if await self.__check_user_auth_role(ctx.member, ctx.guild_id):
             return AuthResponseBuilder.verification_error(
-                "You're already authenticated in this server."
+                "You're already authenticated in this server.", False
             )
 
         # TODO: Return embed with ok/cancel to allow user to accept auth on server
 
-        if await self.__grant_user_auth_role(ctx.member, ctx.guild_id):
+        if await self.__grant_user_auth_role(ctx.member, ctx.guild_id, user.userName):
             return AuthResponseBuilder.verification_ok(
                 message=f"Welcome back {user.userName}, you're already "
                 "authenticated so you get to skip the line!",
@@ -198,7 +199,9 @@ class AuthHandler:
                 "Failed to save auth to database, please see a GAN admin."
             )
 
-        if not await self.__grant_user_auth_role(ctx.member, ctx.guild_id):
+        if not await self.__grant_user_auth_role(
+            ctx.member, ctx.guild_id, user.userName
+        ):
             logger.error(
                 "Failed to save grant role - "
                 f"discordId: {authRequest.userDiscordId}, "
@@ -287,7 +290,9 @@ class AuthHandler:
 
         return any(role_id == id for id in member.roles)
 
-    async def __grant_user_auth_role(self, member: Member, guild_id: int) -> bool:
+    async def __grant_user_auth_role(
+        self, member: Member, guild_id: int, username: str
+    ) -> bool:
         """Grants a user the correct authorized role in a guild.
 
         Args:
@@ -297,21 +302,54 @@ class AuthHandler:
         Returns:
             bool: True if the role was granted, otherwise false.
         """
-        # TODO: __grant_user_auth_role impl
+
         role_id = await GoonServer.find_option(guild_id, ServerOption.AUTH_ROLE)
-        if role_id is None:
-            return False
+        notify_admin = await GoonServer.find_option(
+            guild_id, ServerOption.NOTICE_CHANNEL_ADMIN
+        )
+        notify_auth = await GoonServer.find_option(
+            guild_id, ServerOption.NOTICE_CHANNEL_AUTH
+        )
 
         try:
             role_id = int(role_id)
+            notify_admin = int(notify_admin)
+            if notify_auth is not None:
+                notify_auth = int(notify_auth)
         except ValueError:
             return False
 
+        if await self.discord_api.add_guild_member_role(
+            guild_id, member.user.id, int(role_id)
+        ):
+            logger.debug(
+                f"Granted goon status - user: {member.user.id}, "
+                f"server: {guild_id}, role: {role_id}"
+            )
+
+            message = CreateMessage(
+                content=f"<@{member.user.id}> (SA: {username}) "
+                "has successfully authenticated!",
+            )
+
+            if not await self.discord_api.create_message(notify_admin, message):
+                logger.error(
+                    "Failed to notify admin channel of new auth - "
+                    f"channel: {notify_admin}, message: {str(message)}"
+                )
+
+            if notify_auth is not None and notify_auth != notify_admin:
+                if not await self.discord_api.create_message(notify_auth, message):
+                    logger.error(
+                        "Failed to notify auth channel of new auth - "
+                        f"channel: {notify_auth}, message: {str(message)}"
+                    )
+
+            return True
+
         logger.debug(
-            f"Granting goon status - user: {member.user.id}, "
+            f"Failed to granted goon status - user: {member.user.id}, "
             f"server: {guild_id}, role: {role_id}"
         )
 
-        return await self.discord_api.add_guild_member_role(
-            guild_id, member.user.id, int(role_id)
-        )
+        return False

@@ -33,6 +33,19 @@ class CreateMessage:
         self.components = components
         self.allowed_mentions = allowed_mentions
 
+    def __str__(self) -> str:
+        if self.content is not None:
+            return f"Message<{self.content}>"
+
+        if self.embeds is not None and len(self.embeds) > 0:
+            embed = self.embeds[0]
+
+            return "Message<{title}>({desc})".format(
+                title=embed.title, desc=embed.description
+            )
+
+        return "Message<>"
+
     def request_data(self) -> Dict[str, Any]:
         response = dict()
 
