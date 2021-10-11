@@ -21,8 +21,9 @@ bot = Dispike(
     bot_token=bot_settings.discord_bot_token,
 )
 
-bot.referenced_application.add_event_handler("startup", connect_to_mongo)
-bot.referenced_application.add_event_handler("shutdown", close_mongo_connection)
+app = bot.referenced_application
+app.add_event_handler("startup", connect_to_mongo)
+app.add_event_handler("shutdown", close_mongo_connection)
 
 logger.info(f"Using GoonAuthApi at {bot_settings.awful_auth_address}")
 logger.info(f"Using GoonFilesApi at {bot_settings.goon_files_address}")

@@ -8,7 +8,7 @@ from typing import List, Optional
 from dotenv import load_dotenv
 from loguru import logger
 from pydantic import BaseSettings, Field
-from pydantic import HttpUrl
+from pydantic import AnyHttpUrl
 
 DEVELOPMENT = os.environ.get("development", "False") == "True"
 
@@ -27,8 +27,8 @@ class BotSettings(BaseSettings):
     discord_public_key: str = Field(..., env="DISCORD_PUBLIC_KEY")
 
     # Api Clients
-    awful_auth_address: HttpUrl = Field(..., env="AWFUL_AUTH_ADDRESS")
-    goon_files_address: HttpUrl = Field(..., env="GOON_FILES_ADDRESS")
+    awful_auth_address: AnyHttpUrl = Field(..., env="AWFUL_AUTH_ADDRESS")
+    goon_files_address: AnyHttpUrl = Field(..., env="GOON_FILES_ADDRESS")
 
     # Bot Settings
     auth_attempt_lifespan: int = Field(5, env="AUTH_ATTEMPT_LIFESPAN_MINS")
