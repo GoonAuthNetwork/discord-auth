@@ -318,6 +318,8 @@ class AuthHandler:
                 notify_auth = int(notify_auth)
         except ValueError:
             return False
+        except TypeError:
+            return False
 
         if await self.discord_api.add_guild_member_role(
             guild_id, member.user.id, int(role_id)
