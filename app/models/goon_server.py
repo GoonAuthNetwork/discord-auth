@@ -37,7 +37,7 @@ class GoonServer(odmantic.Model):
         server = await GoonServer.find_server(serverId)
         if server is None or server.options is None:
             logger.error(
-                "Searching for non existant option or server - "
+                "Searching for non-existent option or server - "
                 f"serverId:{serverId}, opt: {option.value}"
             )
 

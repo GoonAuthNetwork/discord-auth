@@ -21,7 +21,7 @@ class AuthResponseBuilder:
         embed.add_field(
             name="\u200B",
             value=(
-                "Powerd by the opened-sourced "
+                "Powered by the open-sourced "
                 "[Goon Auth Network](https://github.com/GoonAuthNetwork)"
             ),
         )
@@ -60,7 +60,7 @@ class AuthResponseBuilder:
         embed.add_field(
             name="\u200B",
             value=(
-                "Powerd by the opened-sourced "
+                "Powered by the open-sourced "
                 "[Goon Auth Network](https://github.com/GoonAuthNetwork)"
             ),
         )
@@ -98,7 +98,7 @@ class AuthResponseBuilder:
     ) -> DiscordResponse:
         if message is None:
             message = (
-                "Your're finally validated! "
+                "You're finally validated! "
                 "Please enjoy your new found gooniness.\n\n"
                 "If you would like to know more about the Goon Auth Network "
                 "please click below!"
