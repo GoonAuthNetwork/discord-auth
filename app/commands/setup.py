@@ -39,7 +39,7 @@ class SetupCollection(interactions.EventCollection):
                     CommandOption(
                         name="admin-notice-channel",
                         description=(
-                            "The channel to send admin notications to. "
+                            "The channel to send admin notifications to. "
                             "The bot user must have message create permissions."
                         ),
                         type=OptionTypes.CHANNEL,
@@ -48,7 +48,7 @@ class SetupCollection(interactions.EventCollection):
                     CommandOption(
                         name="auth-notice-channel",
                         description=(
-                            "Optional channel to send auth notications to. "
+                            "Optional channel to send auth notifications to. "
                             "The bot user must have message create permissions."
                         ),
                         type=OptionTypes.CHANNEL,

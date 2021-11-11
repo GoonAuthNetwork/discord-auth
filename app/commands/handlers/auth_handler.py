@@ -91,7 +91,7 @@ class AuthHandler:
                 )
         except TypeError:
             return AuthResponseBuilder.verification_error(
-                "Invald username, please try again!"
+                "Invalid username, please try again!"
             )
 
         # Check for existing auth attempt with this hash
@@ -103,7 +103,7 @@ class AuthHandler:
             if existing_attempt.userDiscordId != ctx.member.user.id:
                 # Someone is trying to auth in an existing attempt that isn't theirs
                 return AuthResponseBuilder.challenge_error(
-                    "Someone is already attemping to auth with that username. "
+                    "Someone is already attempting to auth with that username. "
                     f"Are you sure you're `{username}`?"
                 )
 

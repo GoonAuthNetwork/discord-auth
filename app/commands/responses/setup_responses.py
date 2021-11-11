@@ -19,7 +19,7 @@ class SetupResponseBuilder:
         embed.add_field(
             name="\u200B",
             value=(
-                "Powerd by the opened-sourced "
+                "Powered by the open-sourced "
                 "[Goon Auth Network](https://github.com/GoonAuthNetwork)"
             ),
         )
@@ -41,7 +41,7 @@ class SetupResponseBuilder:
         embed.add_field(
             name="\u200B",
             value=(
-                "Powerd by the opened-sourced "
+                "Powered by the open-sourced "
                 "[Goon Auth Network](https://github.com/GoonAuthNetwork)"
             ),
         )
@@ -74,7 +74,7 @@ class SetupResponseBuilder:
         embed.add_field(
             name="\u200B",
             value=(
-                "Powerd by the opened-sourced "
+                "Powered by the open-sourced "
                 "[Goon Auth Network](https://github.com/GoonAuthNetwork)"
             ),
             inline=False,
