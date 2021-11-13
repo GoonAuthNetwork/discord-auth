@@ -5,6 +5,7 @@ from dispike.response import DiscordResponse
 
 from app import __version__
 from app.clients.goon_files_api import User
+from .utils import create_response
 
 
 class AboutView:
@@ -24,7 +25,6 @@ class AboutView:
 
         # Current user if it exists
         if user is not None:
-            # embed.add_field(name="\u200B", value="\u200B", inline=False)
             embed.add_field(
                 name="Current User",
                 value=(
@@ -43,4 +43,4 @@ class AboutView:
         # GAN stats
         embed.add_field(name="Servers powered by GAN", value=server_count, inline=True)
 
-        return DiscordResponse(content=" ", embeds=[embed], empherical=True)
+        return create_response(embed, add_powered_by=False)

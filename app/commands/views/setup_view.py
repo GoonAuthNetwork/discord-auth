@@ -2,65 +2,43 @@ from dispike.helper import Embed, color
 from dispike.response import DiscordResponse
 
 from app.models.goon_server import GoonServer
+from .utils import create_response
 
 
 class SetupView:
     def not_server_owner() -> DiscordResponse:
-        message = (
-            "You're not the server owner! I think setup would be best left to them."
-        )
-
         embed = Embed(
-            type="rich",
             title="New Server Setup",
-            description=message,
+            description=(
+                "You're not the server owner! I think setup would be best left to them."
+            ),
             color=color.Color.red(),
         )
-        embed.add_field(
-            name="\u200B",
-            value=(
-                "Powered by the open-source "
-                "[Goon Auth Network](https://github.com/GoonAuthNetwork)"
-            ),
-        )
 
-        return DiscordResponse(content=" ", embeds=[embed], empherical=True)
+        return create_response(embed)
 
     def already_set() -> DiscordResponse:
-        message = (
-            "The server was already setup."
-            " To change configuration options please use `/config`."
-        )
-
         embed = Embed(
-            type="rich",
             title="New Server Setup",
-            description=message,
+            description=(
+                "The server was already setup."
+                " To change configuration options please use `/config`."
+            ),
             color=color.Color.red(),
         )
-        embed.add_field(
-            name="\u200B",
-            value=(
-                "Powered by the open-source "
-                "[Goon Auth Network](https://github.com/GoonAuthNetwork)"
-            ),
-        )
 
-        return DiscordResponse(content=" ", embeds=[embed], empherical=True)
+        return create_response(embed)
 
     def setup_ok(server: GoonServer) -> DiscordResponse:
-        message = (
-            "Congratulations, you now have stairs in your server!\n"
-            "If you need any help with the bot please visit the GAN discord "
-            "which can be found (here)[https://discord.gg/AW63YNcaDf].\n\n"
-            "The server was setup with the following options, "
-            "to change them please type `/config`."
-        )
-
         embed = Embed(
-            type="rich",
             title="New Server Setup",
-            description=message,
+            description=(
+                "Congratulations, you now have stairs in your server!\n"
+                "If you need any help with the bot please visit the GAN discord "
+                "which can be found (here)[https://discord.gg/AW63YNcaDf].\n\n"
+                "The server was setup with the following options, "
+                "to change them please type `/config`."
+            ),
             color=color.Color.green(),
         )
 
@@ -71,13 +49,4 @@ class SetupView:
                 name=opt.value.replace("_", " ").title(), value=f"{value}", inline=True
             )
 
-        embed.add_field(
-            name="\u200B",
-            value=(
-                "Powered by the open-source "
-                "[Goon Auth Network](https://github.com/GoonAuthNetwork)"
-            ),
-            inline=False,
-        )
-
-        return DiscordResponse(content=" ", embeds=[embed], empherical=True)
+        return create_response(embed)
