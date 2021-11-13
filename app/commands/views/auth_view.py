@@ -3,7 +3,7 @@ from dispike.helper import Embed, color
 from dispike.response import DiscordResponse
 
 
-class AuthResponseBuilder:
+class AuthView:
     def challenge_ok(hash: str) -> DiscordResponse:
         message = (
             "Please place the following hash anywhere in the "

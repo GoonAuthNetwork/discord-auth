@@ -4,7 +4,7 @@ from dispike.response import DiscordResponse
 from app.models.goon_server import GoonServer
 
 
-class SetupResponseBuilder:
+class SetupView:
     def not_server_owner() -> DiscordResponse:
         message = (
             "You're not the server owner! I think setup would be best left to them."

@@ -17,7 +17,7 @@ from app.mongodb import db
 from app.clients.discord_api import DiscordClient
 from app.clients.goon_auth_api import GoonAuthApi, GoonAuthStatus
 from app.clients.goon_files_api import GoonFilesApi, Service, ServiceToken, User
-from app.commands.responses.auth_responses import AuthResponseBuilder
+from app.commands.views import AuthView
 from app.models.user_auth_request import UserAuthRequest
 from app.utils import valid_sa_name
 
@@ -51,7 +51,7 @@ class AuthHandler:
         # Handle a new user
         if user is None:
             if not valid_sa_name(username):
-                return AuthResponseBuilder.verification_error(
+                return AuthView.verification_error(
                     "Hello new user, you seem to have entered an invalid username or "
                     "forgot to enter one altogether. Please try the command again!",
                     update_message=False,
@@ -60,7 +60,7 @@ class AuthHandler:
             return await self.__auth_new(username, ctx)
 
         if username is not None and user.userName.lower() != username.lower():
-            return AuthResponseBuilder.verification_error("That's not your sa name!")
+            return AuthView.verification_error("That's not your sa name!")
 
         return await self.__auth_existing(user, ctx)
 
@@ -86,13 +86,11 @@ class AuthHandler:
                     f"guild: {ctx.guild_id}, author: {ctx.member.user.id}, "
                     f"user: {username}"
                 )
-                return AuthResponseBuilder.challenge_error(
+                return AuthView.challenge_error(
                     "Failed to get challenge hash, please contact a GAN admin."
                 )
         except TypeError:
-            return AuthResponseBuilder.verification_error(
-                "Invalid username, please try again!"
-            )
+            return AuthView.verification_error("Invalid username, please try again!")
 
         # Check for existing auth attempt with this hash
         existing_attempt = await db.engine.find_one(
@@ -102,7 +100,7 @@ class AuthHandler:
         if existing_attempt is not None:
             if existing_attempt.userDiscordId != ctx.member.user.id:
                 # Someone is trying to auth in an existing attempt that isn't theirs
-                return AuthResponseBuilder.challenge_error(
+                return AuthView.challenge_error(
                     "Someone is already attempting to auth with that username. "
                     f"Are you sure you're `{username}`?"
                 )
@@ -126,7 +124,7 @@ class AuthHandler:
             f"user: {result.saName}, author: {result.userDiscordId}, "
             f"lastUpdated: {result.lastUpdated}, objId: {result.id}"
         )
-        return AuthResponseBuilder.challenge_ok(challenge.hash)
+        return AuthView.challenge_ok(challenge.hash)
 
     async def __auth_existing(
         self, user: User, ctx: IncomingDiscordButtonInteraction
@@ -143,14 +141,14 @@ class AuthHandler:
         )
 
         if await self.__check_user_auth_role(ctx.member, ctx.guild_id):
-            return AuthResponseBuilder.verification_error(
+            return AuthView.verification_error(
                 "You're already authenticated in this server.", False
             )
 
         # TODO: Return embed with ok/cancel to allow user to accept auth on server
 
         if await self.__grant_user_auth_role(ctx.member, ctx.guild_id, user.userName):
-            return AuthResponseBuilder.verification_ok(
+            return AuthView.verification_ok(
                 message=f"Welcome back {user.userName}, you're already "
                 "authenticated so you get to skip the line!",
                 update_message=False,
@@ -160,7 +158,7 @@ class AuthHandler:
             f"Existing user failed to get role - guild: {ctx.guild_id}, "
             f"user: {ctx.member.user.id}"
         )
-        return AuthResponseBuilder.verification_error(
+        return AuthView.verification_error(
             "Something went wrong, please contact a GAN admin."
         )
 
@@ -171,7 +169,7 @@ class AuthHandler:
             UserAuthRequest, UserAuthRequest.userDiscordId == ctx.member.user.id
         )
         if authRequest is None:
-            return AuthResponseBuilder.verification_error(
+            return AuthView.verification_error(
                 "Your seem to be missing from the database. Did you wait too long?\n"
                 "Please try again from /auth."
             )
@@ -179,10 +177,10 @@ class AuthHandler:
         # TODO: Rate limit here
         authStatus = await self.__check_awful_auth_verification(authRequest)
         if authStatus is str:
-            return AuthResponseBuilder.verification_error(authStatus)
+            return AuthView.verification_error(authStatus)
 
         if not authStatus.validated:
-            return AuthResponseBuilder.verification_profile_hash_missing()
+            return AuthView.verification_profile_hash_missing()
 
         user = await self.files_api.create_or_update_user(
             userId=authStatus.user_id,
@@ -195,7 +193,7 @@ class AuthHandler:
                 "Failed to save auth to db - "
                 f"discordId: {ctx.member.user.id}, saName: {authStatus.user_name}"
             )
-            return AuthResponseBuilder.verification_error(
+            return AuthView.verification_error(
                 "Failed to save auth to database, please see a GAN admin."
             )
 
@@ -207,7 +205,7 @@ class AuthHandler:
                 f"discordId: {authRequest.userDiscordId}, "
                 f"saName: {authRequest.saName}"
             )
-            return AuthResponseBuilder.verification_error(
+            return AuthView.verification_error(
                 "Failed to grant role, please see a GAN admin "
                 "and/or your local server admin."
             )
@@ -220,7 +218,7 @@ class AuthHandler:
             f"saName: {authRequest.saName}"
         )
 
-        return AuthResponseBuilder.verification_ok()
+        return AuthView.verification_ok()
 
     async def __check_awful_auth_verification(
         self, authRequest: UserAuthRequest
@@ -258,7 +256,7 @@ class AuthHandler:
 
         await self.__delete_auth_attempts(ctx.member.user.id)
 
-        return AuthResponseBuilder.verification_cancel()
+        return AuthView.verification_cancel()
 
     async def __delete_auth_attempts(self, discordId: int) -> None:
         auth_requests = await db.engine.find(

@@ -6,8 +6,7 @@ from dispike.response import DiscordResponse
 from loguru import logger
 
 from app.clients.goon_files_api import GoonFilesApi, Service
-from app.commands.responses.about_responses import AboutResponseBuilder
-from app.commands.responses.help_responses import HelpResponseBuilder
+from app.commands.views import AboutView, HelpView
 
 
 class InfoCollection(interactions.EventCollection):
@@ -42,12 +41,10 @@ class InfoCollection(interactions.EventCollection):
             Service.DISCORD, ctx.member.user.id
         )
         if user is not None:
-            return AboutResponseBuilder.about_authed(
-                user.userName, user.userId, user.createdAt
-            )
+            return AboutView.about_authed(user.userName, user.userId, user.createdAt)
 
-        return AboutResponseBuilder.about_anonymous()
+        return AboutView.about_anonymous()
 
     @interactions.on("help")
     async def help(self, ctx: IncomingDiscordSlashInteraction) -> DiscordResponse:
-        return HelpResponseBuilder.help()
+        return HelpView.help()

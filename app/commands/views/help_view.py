@@ -2,7 +2,7 @@ from dispike.helper import Embed, color
 from dispike.response import DiscordResponse
 
 
-class HelpResponseBuilder:
+class HelpView:
     def help() -> DiscordResponse:
         message = (
             "Hello user, this authentication bot is still fairly new. While it is "

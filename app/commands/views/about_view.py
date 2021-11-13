@@ -4,7 +4,7 @@ from dispike.helper import Embed, color
 from dispike.response import DiscordResponse
 
 
-class AboutResponseBuilder:
+class AboutView:
     about_ethics = (
         "Insert some giant monologue on the "
         "ethics of discord goon authentication here."
@@ -16,7 +16,7 @@ class AboutResponseBuilder:
         embed = Embed(
             type="rich",
             title="About GoonAuthNetwork",
-            description=AboutResponseBuilder.about_ethics,
+            description=AboutView.about_ethics,
             color=color.Colour.teal(),
         )
 
@@ -47,7 +47,7 @@ class AboutResponseBuilder:
         embed = Embed(
             type="rich",
             title="About GoonAuthNetwork",
-            description=AboutResponseBuilder.about_ethics,
+            description=AboutView.about_ethics,
             color=color.Colour.teal(),
         )
         embed.add_field(

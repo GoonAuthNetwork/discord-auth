@@ -8,7 +8,7 @@ from loguru import logger
 
 from app.clients.discord_api.client import DiscordClient
 from app.config import bot_settings
-from app.commands.responses import SetupResponseBuilder
+from app.commands.views import SetupView
 from app.models.goon_server import GoonServer, ServerOption
 
 
@@ -74,12 +74,12 @@ class SetupCollection(interactions.EventCollection):
 
         # TODO: Block, rate limit?
         if ctx.member.user.id != await self.__find_server_owner(ctx.guild_id):
-            return SetupResponseBuilder.not_server_owner()
+            return SetupView.not_server_owner()
 
         server = await GoonServer.find_server(ctx.guild_id)
 
         if server is not None:
-            return SetupResponseBuilder.already_set()
+            return SetupView.already_set()
 
         server = await GoonServer.save_options(
             ctx.guild_id,
@@ -92,7 +92,7 @@ class SetupCollection(interactions.EventCollection):
             },
         )
 
-        return SetupResponseBuilder.setup_ok(server)
+        return SetupView.setup_ok(server)
 
     async def __find_server_owner(self, serverId: int) -> typing.Optional[int]:
         guild = await self.discord_api.get_guild(serverId)
