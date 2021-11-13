@@ -100,7 +100,3 @@ class SetupCollection(interactions.EventCollection):
             return None
 
         return guild.owner_id
-
-        # TODO: Find server owner via rest api: GET /guilds/{guild.id}
-        # For now, I am the owner
-        return 123435280870014976

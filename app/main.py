@@ -43,3 +43,17 @@ collections: List[interactions.EventCollection] = [
 
 for col in collections:
     bot.register_collection(col)
+
+logger.info("Discord-Auth start up complete")
+logger.info(
+    (
+        "Use the following link to invite the bot to your server: "
+        "https://discord.com/oauth2/authorize"
+        f"?client_id={bot_settings.discord_application_id}"
+        # Bot for API Access
+        # application.commands to enable /commands
+        r"&scope=bot%20applications.commands"
+        # 268435456 is just 'Manage Roles'
+        "&permissions=268435456"
+    )
+)

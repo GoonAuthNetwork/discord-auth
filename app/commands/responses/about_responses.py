@@ -35,7 +35,7 @@ class AboutResponseBuilder:
         embed.add_field(
             name="\u200B",
             value=(
-                "Powered by the open-sourced "
+                "Powered by the open-source "
                 "[Goon Auth Network](https://github.com/GoonAuthNetwork)"
             ),
             inline=False,
@@ -53,7 +53,7 @@ class AboutResponseBuilder:
         embed.add_field(
             name="\u200B",
             value=(
-                "Powered by the open-sourced "
+                "Powered by the open-source "
                 "[Goon Auth Network](https://github.com/GoonAuthNetwork)"
             ),
             inline=False,
