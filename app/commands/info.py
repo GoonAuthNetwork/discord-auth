@@ -7,6 +7,7 @@ from loguru import logger
 
 from app.clients.goon_files_api import GoonFilesApi, Service
 from app.commands.views import AboutView, HelpView
+from app.models.goon_server import GoonServer
 
 
 class InfoCollection(interactions.EventCollection):
@@ -36,14 +37,15 @@ class InfoCollection(interactions.EventCollection):
 
     @interactions.on("about")
     async def about(self, ctx: IncomingDiscordSlashInteraction) -> DiscordResponse:
+        # Pull stats
+        server_count = await GoonServer.server_count()
+
         # Pull Auth records and choose a response
         user = await self.files_api.find_user_by_service(
             Service.DISCORD, ctx.member.user.id
         )
-        if user is not None:
-            return AboutView.about_authed(user.userName, user.userId, user.createdAt)
 
-        return AboutView.about_anonymous()
+        return AboutView.about(server_count, user)
 
     @interactions.on("help")
     async def help(self, ctx: IncomingDiscordSlashInteraction) -> DiscordResponse:

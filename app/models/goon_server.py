@@ -29,6 +29,10 @@ class GoonServer(odmantic.Model):
     )
 
     @staticmethod
+    async def server_count() -> int:
+        return await db.engine.count(GoonServer)
+
+    @staticmethod
     async def find_server(serverId: int) -> typing.Optional["GoonServer"]:
         return await db.engine.find_one(GoonServer, GoonServer.serverId == serverId)
 
