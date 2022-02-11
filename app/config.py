@@ -3,7 +3,7 @@ import os
 import sys
 
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from dotenv import load_dotenv
 from loguru import logger
@@ -20,8 +20,6 @@ if DEVELOPMENT:
 
 class BotSettings(BaseSettings):
     # Discord Settings
-    guild_ids: Optional[List[int]] = Field(None, env="DISCORD_GUILD_IDS")
-
     discord_bot_token: str = Field(..., env="DISCORD_BOT_TOKEN")
     discord_application_id: int = Field(..., env="DISCORD_APPLICATION_ID")
     discord_public_key: str = Field(..., env="DISCORD_PUBLIC_KEY")

@@ -9,8 +9,10 @@ class UserAuthRequest(odmantic.Model):
         ...,
         title="The user's SA Username",
         min_length=3,
-        max_length=50,
-        regex=r"^[\w\-\_\ ]+$",
+        # TODO: Reimplement validation once userid api is added.
+        # Thanks SA for having absolutely no standards for valid usernames.
+        # max_length=50,
+        # regex=r"^[\w\-\_\ ]+$",
     )
 
     challengeHash: str = odmantic.Field(
