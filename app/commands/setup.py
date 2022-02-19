@@ -78,8 +78,8 @@ class SetupCollection(interactions.EventCollection):
 
         server = await GoonServer.find_server(ctx.guild_id)
 
-        if server is not None:
-            return SetupView.already_set()
+        # if server is not None:
+        #    return SetupView.already_set()
 
         server = await GoonServer.save_options(
             ctx.guild_id,
